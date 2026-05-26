@@ -1,0 +1,13 @@
+{
+  "type": "record",
+  "name": "PageView",
+  "namespace": "com.clickstream",
+  "fields": [
+    {"name": "event_id",    "type": "string"},
+    {"name": "user_id",     "type": "string"},
+    {"name": "session_id",  "type": "string"},
+    {"name": "page",        "type": "string"},
+    {"name": "device",      "type": "string"},
+    {"name": "timestamp",   "type": "long"}
+  ]
+}

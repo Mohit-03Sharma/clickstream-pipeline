@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "Purchase",
+  "namespace": "com.clickstream",
+  "fields": [
+    {"name": "event_id",      "type": "string"},
+    {"name": "user_id",       "type": "string"},
+    {"name": "session_id",    "type": "string"},
+    {"name": "order_id",      "type": "string"},
+    {"name": "total_value",   "type": "float"},
+    {"name": "items_count",   "type": "int"},
+    {"name": "timestamp",     "type": "long"}
+  ]
+}

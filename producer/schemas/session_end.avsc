@@ -1,0 +1,13 @@
+{
+  "type": "record",
+  "name": "SessionEnd",
+  "namespace": "com.clickstream",
+  "fields": [
+    {"name": "event_id",          "type": "string"},
+    {"name": "user_id",           "type": "string"},
+    {"name": "session_id",        "type": "string"},
+    {"name": "duration_seconds",  "type": "int"},
+    {"name": "pages_viewed",      "type": "int"},
+    {"name": "timestamp",         "type": "long"}
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "ProductClick",
+  "namespace": "com.clickstream",
+  "fields": [
+    {"name": "event_id",    "type": "string"},
+    {"name": "user_id",     "type": "string"},
+    {"name": "session_id",  "type": "string"},
+    {"name": "product_id",  "type": "string"},
+    {"name": "category",    "type": "string"},
+    {"name": "price",       "type": "float"},
+    {"name": "timestamp",   "type": "long"}
+  ]
+}
