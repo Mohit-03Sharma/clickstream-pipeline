@@ -30,38 +30,45 @@ def extract_events():
         "clickstream.sessions",
     ]
 
-    consumer = Consumer({
-        "bootstrap.servers": KAFKA_BOOTSTRAP,
-        "group.id":          "airflow-hourly-summary",
-        "auto.offset.reset": "earliest",
-    })
-    consumer.subscribe(topics)
+    # read each topic independently to guarantee balanced sampling
+    all_events = []
+    per_topic  = 200  # up to 200 events per topic
 
-    events      = []
-    empty_polls = 0
+    for topic in topics:
+        consumer = Consumer({
+            "bootstrap.servers": KAFKA_BOOTSTRAP,
+            "group.id":          "airflow-hourly-summary",
+            "auto.offset.reset": "earliest",
+        })
+        consumer.subscribe([topic])
 
-    while len(events) < 500 and empty_polls < 10:
-        msg = consumer.poll(timeout=2.0)
-        if msg is None:
-            empty_polls += 1
-            continue
-        if msg.error():
-            continue
+        events      = []
         empty_polls = 0
-        try:
-            event = deserializer(
-                msg.value(),
-                SerializationContext(msg.topic(), MessageField.VALUE)
-            )
-            event["_topic"] = msg.topic()
-            events.append(event)
-        except Exception:
-            continue
 
-    consumer.close()
-    print(f"[extract_events] Extracted {len(events)} events")
-    return events
+        while len(events) < per_topic and empty_polls < 5:
+            msg = consumer.poll(timeout=2.0)
+            if msg is None:
+                empty_polls += 1
+                continue
+            if msg.error():
+                continue
+            empty_polls = 0
+            try:
+                event = deserializer(
+                    msg.value(),
+                    SerializationContext(msg.topic(), MessageField.VALUE)
+                )
+                event["_topic"] = msg.topic()
+                events.append(event)
+            except Exception:
+                continue
 
+        consumer.close()
+        print(f"  {topic}: {len(events)} events")
+        all_events.extend(events)
+
+    print(f"[extract_events] Extracted {len(all_events)} events total")
+    return all_events
 
 def compute_sessions(events):
     sessions = defaultdict(lambda: {

@@ -1,0 +1,53 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pytest confluent-kafka fastavro faker requests python-dotenv
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
+
+  lint:
+    name: Lint with flake8
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install flake8
+        run: pip install flake8
+
+      - name: Run flake8
+        run: |
+          flake8 producer/ streaming/ dags/ dashboard/ \
+            --max-line-length=120 \
+            --exclude=__pycache__ \
+            --ignore=E501,W503,E302,E303,W291,W293,E261,W292,E221,E241,E272,E226,F541

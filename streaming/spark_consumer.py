@@ -1,5 +1,4 @@
 import os
-import json
 import requests
 from dotenv import load_dotenv
 from pyspark.sql import SparkSession
@@ -116,7 +115,7 @@ def main():
     print("Fetching schemas from Schema Registry...")
     # validate registry is reachable before starting Spark
     for topic in ["clickstream.pageviews", "clickstream.cart", "clickstream.purchases"]:
-        schema = get_schema_from_registry(topic)
+        get_schema_from_registry(topic)
         print(f"  {topic}: OK")
 
     print("Starting Spark session...")
@@ -129,9 +128,9 @@ def main():
     pur  = parse_topic(spark, "clickstream.purchases")
 
     print("Starting streaming queries...")
-    q1 = write_stream(agg_pageviews_per_minute(pv),   "pageviews_per_minute")
-    q2 = write_stream(agg_cart_rate(cart),             "cart_rate")
-    q3 = write_stream(agg_purchase_conversion(pur),    "purchase_conversion")
+    write_stream(agg_pageviews_per_minute(pv),   "pageviews_per_minute")
+    write_stream(agg_cart_rate(cart),             "cart_rate")
+    write_stream(agg_purchase_conversion(pur),    "purchase_conversion")
 
     print("\nStreaming. Results every 15 seconds. Ctrl+C to stop.\n")
     spark.streams.awaitAnyTermination()

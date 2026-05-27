@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
     col, window, count, avg, lit,
-    current_timestamp, when, sum as spark_sum
+    current_timestamp, when
 )
 from pyspark.sql.avro.functions import from_avro
 
@@ -170,9 +170,9 @@ def main():
     pur  = read_topic(spark, "clickstream.purchases")
 
     print("Starting detectors...")
-    q1 = write_anomalies(detect_traffic_spike(pv),        "traffic_spike")
-    q2 = write_anomalies(detect_conversion_drop(pur),     "conversion_drop")
-    q3 = write_anomalies(detect_abandonment_surge(cart),  "abandonment_surge")
+    write_anomalies(detect_traffic_spike(pv),        "traffic_spike")
+    write_anomalies(detect_conversion_drop(pur),     "conversion_drop")
+    write_anomalies(detect_abandonment_surge(cart),  "abandonment_surge")
 
     print("\nAnomaly detectors running. Ctrl+C to stop.\n")
     spark.streams.awaitAnyTermination()
