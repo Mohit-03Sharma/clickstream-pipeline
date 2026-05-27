@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install pytest confluent-kafka fastavro faker requests python-dotenv httpx
+          pip install pytest confluent-kafka==2.14.0 fastavro faker requests python-dotenv httpx authlib
 
       - name: Run tests
         run: pytest tests/ -v --tb=short
