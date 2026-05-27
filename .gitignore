@@ -27,3 +27,7 @@ Thumbs.db
 
 # Debug scripts
 debug_kafka.py
+
+# Airflow
+airflow/
+dags/output/
