@@ -4,18 +4,13 @@ import random
 import uuid
 from datetime import datetime
 from faker import Faker
-import requests
-from confluent_kafka import Producer
-from confluent_kafka.schema_registry import SchemaRegistryClient
-from confluent_kafka.schema_registry.avro import AvroSerializer
-from confluent_kafka.serialization import SerializationContext, MessageField
 
 fake = Faker()
 
 # --- Config ---
 KAFKA_BOOTSTRAP = "localhost:9092"
 SCHEMA_REGISTRY_URL = "http://localhost:8081"
-EVENTS_PER_SECOND = 10  # start slow, crank up later
+EVENTS_PER_SECOND = 10
 
 TOPICS = {
     "page_view":     "clickstream.pageviews",
@@ -25,7 +20,6 @@ TOPICS = {
     "session_end":   "clickstream.sessions",
 }
 
-# realistic funnel ratios: most events are page views, very few are purchases
 EVENT_WEIGHTS = {
     "page_view":     0.70,
     "product_click": 0.15,
@@ -34,25 +28,23 @@ EVENT_WEIGHTS = {
     "session_end":   0.01,
 }
 
-PAGES = ["/home", "/products", "/search", "/product/detail", "/cart", "/checkout", "/account"]
+PAGES      = ["/home", "/products", "/search", "/product/detail", "/cart", "/checkout", "/account"]
 CATEGORIES = ["electronics", "clothing", "books", "home", "sports", "beauty", "toys"]
-DEVICES = ["mobile", "desktop", "tablet"]
+DEVICES    = ["mobile", "desktop", "tablet"]
 
 
 def load_schema(event_type):
-    # read the .avsc file for this event type
     path = f"producer/schemas/{event_type}.avsc"
     with open(path) as f:
         return json.load(f)
 
 
 def register_schema(event_type, schema_dict):
-    # post the schema to Schema Registry — it returns a schema ID
-    # subject name convention: <topic>-value
-    topic = TOPICS[event_type]
+    import requests  # local import — not needed at module level
+    topic   = TOPICS[event_type]
     subject = f"{topic}-value"
-    url = f"{SCHEMA_REGISTRY_URL}/subjects/{subject}/versions"
-    payload = {"schema": json.dumps(schema_dict)}
+    url     = f"{SCHEMA_REGISTRY_URL}/subjects/{subject}/versions"
+    payload  = {"schema": json.dumps(schema_dict)}
     response = requests.post(url, json=payload, headers={"Content-Type": "application/vnd.schemaregistry.v1+json"})
     response.raise_for_status()
     schema_id = response.json()["id"]
@@ -61,19 +53,20 @@ def register_schema(event_type, schema_dict):
 
 
 def make_serializer(schema_dict):
-    # AvroSerializer handles converting a Python dict → Avro bytes
-    sr_client = SchemaRegistryClient({"url": SCHEMA_REGISTRY_URL})
+    # local imports — Kafka machinery only needed when actually producing
+    from confluent_kafka.schema_registry import SchemaRegistryClient
+    from confluent_kafka.schema_registry.avro import AvroSerializer
+    sr_client  = SchemaRegistryClient({"url": SCHEMA_REGISTRY_URL})
     schema_str = json.dumps(schema_dict)
     return AvroSerializer(sr_client, schema_str)
 
 
 def build_event(event_type, user_id, session_id):
-    # shared fields every event has
     base = {
         "event_id":   str(uuid.uuid4()),
         "user_id":    user_id,
         "session_id": session_id,
-        "timestamp":  int(datetime.utcnow().timestamp() * 1000),  # epoch ms
+        "timestamp":  int(datetime.utcnow().timestamp() * 1000),
     }
 
     if event_type == "page_view":
@@ -104,12 +97,14 @@ def build_event(event_type, user_id, session_id):
 
 
 def delivery_report(err, msg):
-    # kafka calls this after each message is acknowledged or fails
     if err:
         print(f"Delivery failed: {err}")
 
 
 def main():
+    from confluent_kafka import Producer
+    from confluent_kafka.serialization import SerializationContext, MessageField
+
     print("Loading schemas...")
     schemas = {et: load_schema(et) for et in TOPICS}
 
@@ -122,8 +117,7 @@ def main():
 
     producer = Producer({"bootstrap.servers": KAFKA_BOOTSTRAP})
 
-    # pool of fake users and sessions — reused across events to simulate real sessions
-    user_pool  = [str(uuid.uuid4()) for _ in range(50)]
+    user_pool    = [str(uuid.uuid4()) for _ in range(50)]
     session_pool = {u: str(uuid.uuid4()) for u in user_pool}
 
     event_types = list(EVENT_WEIGHTS.keys())
@@ -140,7 +134,6 @@ def main():
         event = build_event(event_type, user_id, session_id)
         topic = TOPICS[event_type]
 
-        # occasionally rotate a user's session to simulate session turnover
         if random.random() < 0.002:
             session_pool[user_id] = str(uuid.uuid4())
 
@@ -152,7 +145,7 @@ def main():
 
         count += 1
         if count % 100 == 0:
-            producer.flush()  # send buffered messages every 100 events
+            producer.flush()
             print(f"Sent {count} events")
 
         time.sleep(1 / EVENTS_PER_SECOND)
